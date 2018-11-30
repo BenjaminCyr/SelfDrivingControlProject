@@ -5,7 +5,7 @@ load('TestTrack.mat')
 cline = TestTrack.cline;
 % T = 0.5
 % dt = 0.01;
-nsteps = 24+1;
+nsteps = 10+1;
 
 min_T = 0.01*nsteps;
 max_T = 10;
@@ -53,8 +53,6 @@ options = optimoptions('fmincon', 'ConstraintTolerance', 1e-6, 'SpecifyConstrain
 %         interp1(0:dt:(nsteps-2)*dt,u0(2,:),t,'previous','extrap')];
     
 % x0 = ode1(@(t,x) bike_odefun(x, u0_t(t)), 0:dt:T, initial_state);
-U_total = [];
-
 T = 2;
 
 is = [287 5 -176 0 2 0];
@@ -68,11 +66,17 @@ hold on
 plot(TestTrack.cline(1,:), TestTrack.cline(2,:), 'y')
 hold on
 
-num_iter = 100;
-U_total = zeros(2, num_iter*length(0:0.01:T));
-index = 1;
+final_point = [cline(1, end); cline(2, end) + 20];
+cline = [cline final_point];
 
-for i = 1:num_iter%(length(cline)-1)/2
+num_iter = 100;
+% U_total = zeros(2, num_iter*length(0:0.01:T));
+% U_total = [];
+traj_total  = [];
+index = 1;
+i = 1;
+
+while is(3) < cline(2,end) 
     [close_point, index] = closest_point([is(1) is(3)], cline, index);
     fs = [close_point(1) 0 close_point(2) 0 0 0];
     
@@ -127,18 +131,22 @@ for i = 1:num_iter%(length(cline)-1)/2
             interp1(0:dt:(nsteps-2)*dt,U(1,:),t,'previous','extrap')];
     
     U_i = u(0:0.01:T);
-    U_total(:, (i - 1)*length(U_i)+1:i*length(U_i)) = U_i;
-    [Y1, T1] = forwardIntegrateControlInput(U_i', is);
+%     U_total(:, (i - 1)*length(U_i)+1:i*length(U_i)) = U_i;
+    traj_total = [traj_total; Y0(1:end-1, :) U']; 
+%     U_total = [U_total U_i];
+%     [Y1, T1] = forwardIntegrateControlInput(U_i', is);
     
-    plot(Y1(:,1),Y1(:,3), 'r')
+    plot(Y0(:,1),Y0(:,3), 'r')
     hold on
     
-    is = Y1(end,:);
+    is = Y0(end,:);
+    i = i + 1;
 end
 
 
-is = [287 5 -176 0 2 0];    
-[Y1, T1] = forwardIntegrateControlInput(U_total', is);
+save('Trajectory.mat', 'traj_total');
+% is = [287 5 -176 0 2 0];    
+% [Y1, T1] = forwardIntegrateControlInput(U_total', is);
 
 
 xlabel('x');
@@ -149,7 +157,7 @@ legend('left', 'right', 'center', 'fmincon trajectory','ode45 trajectory using x
 
 function [pt, current_index] = closest_point(pt_in, boundary, current_index)
     distance = sqrt((pt_in(1) - boundary(1,current_index))^2 + (pt_in(2) - boundary(2,current_index))^2);
-    while distance < 30
+    while distance < 20 && current_index < length(boundary)       
        current_index = current_index+1;
        distance = sqrt((pt_in(1) - boundary(1,current_index))^2 + (pt_in(2) - boundary(2,current_index))^2);
     end
