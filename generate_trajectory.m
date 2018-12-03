@@ -27,7 +27,7 @@ ub_Fx = 2500;
 lb_Fx = -5000;
 
 % weights = [1 0.1 1 0 0 0 0 0 nsteps];
-weights = [1 .0001 10 1];
+weights = [1 .0001 10 5];
 
 % 
 % %remember the format for z is as follows:
@@ -73,7 +73,8 @@ num_iter = 100;
 % U_total = zeros(2, num_iter*length(0:0.01:T));
 % U_total = [];
 traj_total  = [];
-T_total = [];
+dt_total = [];
+last_time = 0;
 index = 1;
 i = 1;
 
@@ -127,8 +128,9 @@ while is(3) < cline(2,end)
     
 %     U_i = u(0:0.01:T);
 %     U_total(:, (i - 1)*length(U_i)+1:i*length(U_i)) = U_i;
-    traj_total = [traj_total; Y0(1:end-1, :) U']; 
-    T_total = [T_total T];
+    dt_total = linspace(last_time, last_time+T, nsteps);
+    traj_total = [traj_total;dt_total(1:end-1)' Y0(1:end-1, :) U']; 
+    last_time = last_time+T;
 %     U_total = [U_total U_i];
 %     [Y1, T1] = forwardIntegrateControlInput(U_i', is);
     
