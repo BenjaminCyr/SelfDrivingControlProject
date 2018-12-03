@@ -1,4 +1,5 @@
-function [g,h,dg,dh]=nonlcon(z, nsteps, initial_state, T)
+function [g,h,dg,dh]=nonlcon(z, nsteps, initial_state)
+    T = z(end);
     dt = T/(nsteps - 1);
     
     %load('TestTrack.mat');
@@ -54,8 +55,7 @@ function [g,h,dg,dh]=nonlcon(z, nsteps, initial_state, T)
        dh(base_i:base_i+5, base_i:base_i+5) = dh(base_i:base_i+5, base_i:base_i+5) - 0.5*dt*(A_i');
        dh(2*i+(nsteps)*6-1:2*i+(nsteps)*6, base_i:base_i+5) = -0.5*dt*(B_i'); 
        
-%        dh(end, base_i:base_i+5) = -0.5*(dx_i + dx_i_1)./(nsteps-1);
-%        dh(end, base_i:base_i+5) = -dx_i_1./(nsteps-1);
+       dh(end, base_i:base_i+5) = -0.5*(dx_i + dx_i_1)./(nsteps-1);
     end
     
      i = nsteps;
@@ -75,5 +75,5 @@ function [g,h,dg,dh]=nonlcon(z, nsteps, initial_state, T)
 
    dh(base_i-6:base_i-1, base_i:base_i+5) = dh(base_i-6:base_i-1, base_i:base_i+5) - dt*(A_i_1');
    dh(2*i+(nsteps)*6-3:2*i+(nsteps)*6-2, base_i:base_i+5) = -dt*(B_i_1');
-%    dh(end, base_i:base_i+5) = -dx_i_1./(nsteps-1);
+   dh(end, base_i:base_i+5) = -dx_i_1./(nsteps-1);
 end

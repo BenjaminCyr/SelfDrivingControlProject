@@ -27,7 +27,7 @@ ub_Fx = 2500;
 lb_Fx = -5000;
 
 % weights = [1 0.1 1 0 0 0 0 0 nsteps];
-weights = [1 .001 .1];
+weights = [1 .0001 10 1];
 
 % 
 % %remember the format for z is as follows:
@@ -35,15 +35,15 @@ weights = [1 .001 .1];
 %     
 % %1.1
 
-ub = [repmat([highest_x Inf highest_y Inf Inf Inf], 1, nsteps) repmat([ub_Fx ub_delta], 1, nsteps-1)];
+ub = [repmat([highest_x Inf highest_y Inf Inf Inf], 1, nsteps) repmat([ub_Fx ub_delta], 1, nsteps-1) max_T];
 
-lb = [repmat([lowest_y 0 lowest_y -Inf -Inf -Inf], 1, nsteps) repmat([lb_Fx lb_delta], 1, nsteps-1)];
+lb = [repmat([lowest_y 0 lowest_y -Inf -Inf -Inf], 1, nsteps) repmat([lb_Fx lb_delta], 1, nsteps-1) min_T];
  
 % %1.4
 % %%%%%%%%%%%%%%% no need to change these lines  %%%%%%%%%%%%%%%%%%%%%%
 options = optimoptions('fmincon', 'ConstraintTolerance', 1e-6, 'SpecifyConstraintGradient',true,...
                        'SpecifyObjectiveGradient',true,...
-                       'MaxFunctionEvaluations', 1000, 'MaxIterations', 3000, 'Display','off',...
+                       'MaxFunctionEvaluations', 3000, 'MaxIterations', 10000, 'Display','none',...
                        'CheckGradients',false);
 %                          'Display','iter')
 % 
@@ -53,7 +53,7 @@ options = optimoptions('fmincon', 'ConstraintTolerance', 1e-6, 'SpecifyConstrain
 %         interp1(0:dt:(nsteps-2)*dt,u0(2,:),t,'previous','extrap')];
     
 % x0 = ode1(@(t,x) bike_odefun(x, u0_t(t)), 0:dt:T, initial_state);
-T = 2;
+% T = 2;
 
 is = [287 5 -176 0 2 0];
 % initial_state = [0 1 0 0 0 0];
@@ -73,6 +73,7 @@ num_iter = 100;
 % U_total = zeros(2, num_iter*length(0:0.01:T));
 % U_total = [];
 traj_total  = [];
+T_total = [];
 index = 1;
 i = 1;
 
@@ -80,31 +81,24 @@ while is(3) < cline(2,end)
     [close_point, index] = closest_point([is(1) is(3)], cline, index);
     fs = [close_point(1) 0 close_point(2) 0 0 0];
     
-%     disp([is(1) is(3)]);
-%     disp([fs(1), fs(3)]);
-    
     x0 = linspace(is(1), fs(1), nsteps);
     y0 = linspace(is(3), fs(3), nsteps);
     
-%     vec = [is(1)-fs(1) fs(3)-is(3)]
     df_guess = 0;
-    U0 = repmat([100 df_guess], 1, nsteps-1);
+    U0 = repmat([0 df_guess], 1, nsteps-1);
 
-    z0 = zeros(nsteps*8-2, 1);
+    z0 = zeros(nsteps*8-2+1, 1);
     z0(1:nsteps*6) = repmat(is, 1, nsteps);
     z0(1:6:nsteps*6) = x0;
     z0(2:6:nsteps*6) = ones(1,nsteps);
     z0(3:6:nsteps*6) = y0;
-%     z0(nsteps*6+1:nsteps*8-2) = U0;
+    z0(end) = 0.5;
 
-    nc=@(z) nonlcon(z, nsteps, is, T);
+    nc=@(z) nonlcon(z, nsteps, is);
     cf=@(z) costfun(z, nsteps, fs, weights);
 
-    A = [];
-    b = [];
-
     fprintf('%d:\t', i);
-    [z,fval,~,output] = fmincon(cf,z0,A,b,[],[],lb',ub',nc,options);
+    [z,fval,~,output] = fmincon(cf,z0,[],[],[],[],lb',ub',nc,options);
     fprintf('fval = %e\tFeasibility = %e\n', fval, output.constrviolation);
     
 
@@ -120,6 +114,7 @@ while is(3) < cline(2,end)
 
     Fx = z((nsteps)*6+1:2:(nsteps)*8-2);
     delta = z((nsteps)*6+2:2:(nsteps)*8-2);
+    T = z(end);
     dt = T/(nsteps - 1);
 
     % Y0=reshape(z(1:6*nsteps),6,nsteps)';
@@ -127,12 +122,13 @@ while is(3) < cline(2,end)
 
 
 
-    u=@(t) [interp1(0:dt:(nsteps-2)*dt,U(2,:),t,'previous','extrap');...
-            interp1(0:dt:(nsteps-2)*dt,U(1,:),t,'previous','extrap')];
+%     u=@(t) [interp1(0:dt:(nsteps-2)*dt,U(2,:),t,'previous','extrap');...
+%             interp1(0:dt:(nsteps-2)*dt,U(1,:),t,'previous','extrap')];
     
-    U_i = u(0:0.01:T);
+%     U_i = u(0:0.01:T);
 %     U_total(:, (i - 1)*length(U_i)+1:i*length(U_i)) = U_i;
     traj_total = [traj_total; Y0(1:end-1, :) U']; 
+    T_total = [T_total T];
 %     U_total = [U_total U_i];
 %     [Y1, T1] = forwardIntegrateControlInput(U_i', is);
     
@@ -157,7 +153,7 @@ legend('left', 'right', 'center', 'fmincon trajectory','ode45 trajectory using x
 
 function [pt, current_index] = closest_point(pt_in, boundary, current_index)
     distance = sqrt((pt_in(1) - boundary(1,current_index))^2 + (pt_in(2) - boundary(2,current_index))^2);
-    while distance < 20 && current_index < length(boundary)       
+    while distance < 10 && current_index < length(boundary)       
        current_index = current_index+1;
        distance = sqrt((pt_in(1) - boundary(1,current_index))^2 + (pt_in(2) - boundary(2,current_index))^2);
     end
