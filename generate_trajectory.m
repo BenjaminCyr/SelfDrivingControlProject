@@ -5,7 +5,7 @@ load('TestTrack.mat')
 cline = TestTrack.cline;
 % T = 0.5
 % dt = 0.01;
-nsteps = 10+1;
+nsteps = 20+1;
 
 min_T = 0.01*nsteps;
 max_T = 10;
@@ -142,7 +142,7 @@ while is(3) < cline(2,end)
 end
 
 
-save('Trajectory.mat', 'traj_total');
+% save('Trajectory.mat', 'traj_total');
 % is = [287 5 -176 0 2 0];    
 % [Y1, T1] = forwardIntegrateControlInput(U_total', is);
 
