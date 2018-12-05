@@ -3,6 +3,7 @@ load('TestTrack.mat');
 
 Y = forwardIntegrateControlInput(U);
 
+figure;
 plot(TestTrack.bl(1,:), TestTrack.bl(2,:), 'b')
 hold on
 plot(TestTrack.br(1,:), TestTrack.br(2,:), 'b')

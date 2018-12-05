@@ -19,7 +19,7 @@ T = traj_total(:,1);
 tspan = 0:dt:T(end);
 
 %Interpolate;
-Z_ref=interp1(T, traj_total(:,2:9),tspan, 'spline')';
+Z_ref=interp1(T, traj_total(:,2:9),tspan)';
 Y_ref = Z_ref(1:6,:);
 U_ref = Z_ref(7:8,:);
 
@@ -50,8 +50,8 @@ npred=10;
 %% 2.5 simulate controller working from initial condition [0.25;-0.25;-0.1]
 %use ode45 to between inputs
 % we begin by defining the cost function
-Q = diag([1 1 1 1 1 1]);
-R = diag([.0000000001 1]);
+Q = diag([10 1 10 1 1 1]);
+R = diag([.0000001 .01]);
 
 H = zeros(6*(npred+1) + 2*npred);
 c = zeros(6*(npred+1) + 2*npred,1);
@@ -98,7 +98,7 @@ for i = 1:length(tspan)-1
    u_mpc = optimal_z(6*(window+1)+1:6*(window+1)+2);
    u = U_ref(:,i) + u_mpc;
    %use ode45 to simulate nonlinear system, f, forward 1 timestep
-   [~,ytemp]=ode45(@(t,x) bike_odefun(x,u, false),[0 dt],Y(:,i));
+   [~,ytemp]=ode45(@(t,x) bike_odefun(x,u, false),[tspan(i) tspan(i+1)],Y(:,i));
    Y(:,i+1) = ytemp(end,:)';
    U(:,i) = u;
 end
@@ -141,21 +141,3 @@ function [Lb,Ub]=bound_cons(idx, U_ref, input_range, npred)
         Ub(2*i+6*(npred+1)-1:2*i+6*(npred+1)) = input_range(:,2) - U_ref(:,idx+i-1);
     end
 end
-
-% function x_close = closest_point(x, traj, index)
-%     distances = vecnorm(x - traj(index));
-%     distance2 = vecnorm(x - traj(index+1));
-%     while distance2 > distance
-%         distance = distance2;
-%         index = index + 1;
-%         distance2 = vecnorm(x - traj(index+1));
-%     end
-%     x_close = traj(:,index);
-% end
-
-% function x_close = closest_point(x, traj)
-%     distances = sqrt((x(1)-traj(1,:)).^2 + (x(3)-traj(3,:)).^2);
-% 
-%     [~, ind] = min(distances);
-%     x_close = traj(:,ind);
-% end
