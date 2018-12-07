@@ -16,24 +16,40 @@ load('Trajectory.mat')
 
 T = traj_total(:,1);
 %time span
-tspan = 0:dt:T(end);
+tspan = [0:dt:T(end)]';
+
+% First Turn
+% start_point = 1000;
+% end_point = 3000;
+
+%Final Turns
+% start_point = 10000;
+% end_point = 13500;
+
+%Middle Turn
+% start_point = 8500;
+% end_point = start_point+1000;
+
+
+start_point = 1;
+end_point = length(tspan);
 
 %Interpolate;
-Z_ref=interp1(T, traj_total(:,2:9),tspan)';
-Y_ref = Z_ref(1:6,:);
-U_ref = Z_ref(7:8,:);
+Z_ref=interp1(T, traj_total(:,2:9),tspan);
+Y_ref = Z_ref(:,1:6);
+U_ref = Z_ref(:, 7:8);
 
-x_c = @(t) Z_ref(1, round(t/dt+1));
-u_c = @(t) Z_ref(2, round(t/dt+1));
-y_c = @(t) Z_ref(3, round(t/dt+1));
-v_c = @(t) Z_ref(4, round(t/dt+1));
-psi_c = @(t) Z_ref(5, round(t/dt+1));
-r_c = @(t) Z_ref(6, round(t/dt+1));
+x_c = @(t) Z_ref(round(t/dt+1), 1);
+u_c = @(t) Z_ref(round(t/dt+1), 2);
+y_c = @(t) Z_ref(round(t/dt+1), 3);
+v_c = @(t) Z_ref(round(t/dt+1), 4);
+psi_c = @(t) Z_ref(round(t/dt+1), 5);
+r_c = @(t) Z_ref(round(t/dt+1), 6);
 
 state_c = @(t) [x_c(t); u_c(t); y_c(t); v_c(t); psi_c(t); r_c(t);];
 
-Fx_c = @(t) Z_ref(7, round(t/dt+1));
-df_c = @(t) Z_ref(8, round(t/dt+1));
+Fx_c = @(t) Z_ref(round(t/dt+1), 7);
+df_c = @(t) Z_ref(round(t/dt+1), 8);
 
 input_c = @(t) [Fx_c(t) df_c(t)];
 
@@ -50,8 +66,8 @@ npred=10;
 %% 2.5 simulate controller working from initial condition [0.25;-0.25;-0.1]
 %use ode45 to between inputs
 % we begin by defining the cost function
-Q = diag([10 1 10 1 1 1]);
-R = diag([.0000001 .01]);
+Q = diag([100 1 100 1 1 1]);
+R = diag([.0000001 1]);
 
 H = zeros(6*(npred+1) + 2*npred);
 c = zeros(6*(npred+1) + 2*npred,1);
@@ -73,40 +89,49 @@ plot(TestTrack.br(1,:), TestTrack.br(2,:), 'b')
 hold on
 plot(TestTrack.cline(1,:), TestTrack.cline(2,:), 'y')
 hold on
-plot(Z_ref(1,:),Z_ref(3,:), 'g');
+plot(Z_ref(:,1),Z_ref(:,3), 'g');
 hold on
 
 
-Y = zeros(6,length(tspan));
-U = zeros(2,length(tspan));
-Y(:,1) = Y_ref(:,1);
+Y = zeros(length(tspan), 6);
+U = zeros(length(tspan), 2);
+Y(start_point,:) = Y_ref(start_point,:);
+
+last_U = [U_ref(start_point,2) U_ref(start_point,1)];
 
 
-for i = 1:length(tspan)-1 
-   disp(i)
-   error = Y(:,i)-Y_ref(:,i)
+for i = start_point:end_point %length(tspan)-1 
+   error = Y(i, :)-Y_ref(i,:);
+   fprintf('Error %d:  [%f %f %f %f %f %f]\n', i, error);
    window = min(npred, length(tspan)-i);
    if window > 1
        [Aeq, beq] = eq_cons(i,A,B,window, error);
        [Lb, Ub] = bound_cons(i, U_ref, [lb_Fx ub_Fx; lb_df ub_df], window);
-
+       
        H_section = H((npred-window)*6+1 : 6*npred+6+2*window, (npred-window)*6+1 : 6*npred+6+2*window);
        optimal_z = quadprog( H_section, c(1:8*window+6), [], [], Aeq, beq, Lb, Ub, [], options);
    end
    
    y_mpc = optimal_z(1:6*(window+1));
    u_mpc = optimal_z(6*(window+1)+1:6*(window+1)+2);
-   u = U_ref(:,i) + u_mpc;
+   current_U = [U_ref(i,2) + u_mpc(2) U_ref(i, 1) + u_mpc(1)];
+   u = [last_U; current_U];
    %use ode45 to simulate nonlinear system, f, forward 1 timestep
-   [~,ytemp]=ode45(@(t,x) bike_odefun(x,u, false),[tspan(i) tspan(i+1)],Y(:,i));
-   Y(:,i+1) = ytemp(end,:)';
-   U(:,i) = u;
+   ytemp = forwardIntegrateControlInput(u, Y(i,:));
+   Y(i+1,:) = ytemp(end,:);
+   
+   plot(Y(i:i+1, 1),Y(i:i+1, 3), 'r')
+   hold on
+   
+   U(i,:) = current_U;
+   last_U = current_U;
 end
 
-plot(Y(1,1:i),Y(3,1:i), 'r');
+% plot(Y(1,1:i),Y(3,1:i), 'r');
 
-U = [U(2,:)' U(1,:)'];
-save('Input.mat', 'U');
+ROB599_ControlsProject_part1_input = U(start_point:end_point,:);
+START = Y_ref(start_point,:);
+save('ROB599_ControlsProjectTeam35.mat', 'ROB599_ControlsProject_part1_input', 'START', 'traj_total');
 
 
 function [Aeq,beq]=eq_cons(idx,A,B,npred,x0)
@@ -123,7 +148,7 @@ function [Aeq,beq]=eq_cons(idx,A,B,npred,x0)
     beq = zeros(n*(npred+1), 1);
     
     Aeq( 1:n, 1:n ) = eye( n ); 
-    beq( 1:n ) = x0;
+    beq( 1:n ) = x0';
     for i = 1:npred-1
         Aeq((i*n+1):((i+1)*n), (i*n+1):((i+1)*n)) = eye(n);
         Aeq((i*n+1):((i+1)*n), ((i-1)*n+1):(i*n)) = -A(idx+i-1);
@@ -137,7 +162,7 @@ function [Lb,Ub]=bound_cons(idx, U_ref, input_range, npred)
     Ub = Inf(6*(npred+1)+2*npred, 1);
     
     for i = 1:npred
-        Lb(2*i+6*(npred+1)-1:2*i+6*(npred+1)) = input_range(:,1) - U_ref(:,idx+i-1);
-        Ub(2*i+6*(npred+1)-1:2*i+6*(npred+1)) = input_range(:,2) - U_ref(:,idx+i-1);
+        Lb(2*i+6*(npred+1)-1:2*i+6*(npred+1)) = input_range(:,1) - U_ref(idx+i-1,:)';
+        Ub(2*i+6*(npred+1)-1:2*i+6*(npred+1)) = input_range(:,2) - U_ref(idx+i-1,:)';
     end
 end

@@ -27,23 +27,6 @@ function A = calculate_A(state, input)
     %slip angle functions in degrees
     a_f=rad2deg(delta-atan2(v+a*r,u));
     a_r=rad2deg(-atan2((v-b*r),u));
-
-    %Nonlinear Tire Dynamics
-%     phi_yf=(1-Ey)*(a_f+Shy)+(Ey/By)*atan(By*(a_f+Shy));
-%     phi_yr=(1-Ey)*(a_r+Shy)+(Ey/By)*atan(By*(a_r+Shy));
-
-    F_zf=b/(a+b)*m*g;
-%     F_yf=F_zf*Dy*sin(Cy*atan(By*phi_yf))+Svy;
-
-    F_zr=a/(a+b)*m*g;
-%     F_yr=F_zr*Dy*sin(Cy*atan(By*phi_yr))+Svy;
-    
-    %Linear Aproximation: Approximate a_f and a_r as zero
-    C_af = F_zf*By*Cy*Dy;
-    C_ar = F_zr*By*Cy*Dy;
-    
-    F_yf = C_af*a_f;
-    F_yr = C_ar*a_r;
     
     %Alpha derivatives
     da_fdu = rad2deg((v+a*r)/((v+a*r)^2 + u^2));
@@ -53,35 +36,50 @@ function A = calculate_A(state, input)
     da_rdu = rad2deg((v-b*r)/((v-b*r)^2 + u^2));
     da_rdv = rad2deg(-u/((v-b*r)^2 + u^2));
     da_rdr = rad2deg(b*u/((v-b*r)^2 + u^2));
-        
+
+    %Nonlinear Tire Dynamics
+    phi_yf=(1-Ey)*(a_f+Shy)+(Ey/By)*atan(By*(a_f+Shy));
+    phi_yr=(1-Ey)*(a_r+Shy)+(Ey/By)*atan(By*(a_r+Shy));
+    
+    %Phi derivatives
+    dphi_yfda_f = (1-Ey) + Ey/(By^2*(a_f+Shy)^2 + 1);
+    dphi_yrda_r = (1-Ey) + Ey/(By^2*(a_r+Shy)^2 + 1);
     
 
-%     da_fdu = -(v+a*r)/((v+a*r)^2 + u^2);
-%     da_fdv = u/((v+a*r)^2 + u^2);
-%     da_fdr = a*u/((v+a*r)^2 + u^2);
-%     da_fddelta = 1;
-%     
-%     da_rdu = (v-b*r)/((v-b*r)^2 + u^2);
-%     da_rdv = -u/((v-b*r)^2 + u^2);
-%     da_rdr = b*u/((v-b*r)^2 + u^2);
-    
-%     da_fdu = 0;
-%     da_fdv = 0;
-%     da_fdr = 0;
-%     da_fddelta = 0;
-%     
-%     da_rdu = 0;
-%     da_rdv = 0;
-%     da_rdr = 0;
+    %Lateral Forces
+    F_zf=b/(a+b)*m*g;
+    F_yf=F_zf*Dy*sin(Cy*atan(By*phi_yf))+Svy;
+
+    F_zr=a/(a+b)*m*g;
+    F_yr=F_zr*Dy*sin(Cy*atan(By*phi_yr))+Svy;
     
     %F_y derivatives
-    dF_yfdu = C_af*da_fdu;
-    dF_yfdv = C_af*da_fdv;
-    dF_yfdr = C_af*da_fdr;
+    dF_yfdphi_yf = F_zf*Dy*By*Cy*cos(Cy*atan(By*phi_yf))/(By^2*phi_yf^2 + 1);
+    dF_yrdphi_yr = F_zr*Dy*By*Cy*cos(Cy*atan(By*phi_yr))/(By^2*phi_yr^2 + 1);
+
+    dF_yfdu = dF_yfdphi_yf*dphi_yfda_f*da_fdu;
+    dF_yfdv = dF_yfdphi_yf*dphi_yfda_f*da_fdv;
+    dF_yfdr = dF_yfdphi_yf*dphi_yfda_f*da_fdr;
     
-    dF_yrdu = C_ar*da_rdu;
-    dF_yrdv = C_ar*da_rdv;
-    dF_yrdr = C_ar*da_rdr;
+    dF_yrdu = dF_yrdphi_yr*dphi_yrda_r*da_rdu;
+    dF_yrdv = dF_yrdphi_yr*dphi_yrda_r*da_rdv;
+    dF_yrdr = dF_yrdphi_yr*dphi_yrda_r*da_rdr;
+    
+    %Linear Aproximation: Approximate a_f and a_r as zero
+%     C_af = F_zf*By*Cy*Dy;
+%     C_ar = F_zr*By*Cy*Dy;
+%     
+%     F_yf = C_af*a_f;
+%     F_yr = C_ar*a_r;
+%     
+%     %F_y derivatives
+%     dF_yfdu = C_af*da_fdu;
+%     dF_yfdv = C_af*da_fdv;
+%     dF_yfdr = C_af*da_fdr;
+%     
+%     dF_yrdu = C_ar*da_rdu;
+%     dF_yrdv = C_ar*da_rdv;
+%     dF_yrdr = C_ar*da_rdr;
     
     %X derivatives
     dXdu = cos(psi);
@@ -110,6 +108,7 @@ function A = calculate_A(state, input)
     drdu = a*dF_yfdu*cos(delta)/Iz - b*dF_yrdu/Iz;
     drdv = a*dF_yfdv*cos(delta)/Iz - b*dF_yrdv/Iz;
     drdr = a*dF_yfdr*cos(delta)/Iz - b*dF_yrdr/Iz;
+    
           
     %    X          u           Y           v           psi         r
     A = [0          dXdu        0           dXdv        dXdpsi      0;

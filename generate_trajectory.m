@@ -5,7 +5,7 @@ load('TestTrack.mat')
 cline = TestTrack.cline;
 % T = 0.5
 % dt = 0.01;
-nsteps = 20+1;
+nsteps = 10+1;
 
 min_T = 0.01*nsteps;
 max_T = 10;
@@ -27,7 +27,7 @@ ub_Fx = 2500;
 lb_Fx = -5000;
 
 % weights = [1 0.1 1 0 0 0 0 0 nsteps];
-weights = [1 .0001 10 5];
+weights = [1 .000001 1 10];
 
 % 
 % %remember the format for z is as follows:
@@ -37,7 +37,7 @@ weights = [1 .0001 10 5];
 
 ub = [repmat([highest_x Inf highest_y Inf Inf Inf], 1, nsteps) repmat([ub_Fx ub_delta], 1, nsteps-1) max_T];
 
-lb = [repmat([lowest_y 0 lowest_y -Inf -Inf -Inf], 1, nsteps) repmat([lb_Fx lb_delta], 1, nsteps-1) min_T];
+lb = [repmat([lowest_y 3 lowest_y -Inf -Inf -Inf], 1, nsteps) repmat([lb_Fx lb_delta], 1, nsteps-1) min_T];
  
 % %1.4
 % %%%%%%%%%%%%%%% no need to change these lines  %%%%%%%%%%%%%%%%%%%%%%
@@ -66,7 +66,7 @@ hold on
 plot(TestTrack.cline(1,:), TestTrack.cline(2,:), 'y')
 hold on
 
-final_point = [cline(1, end); cline(2, end) + 20];
+final_point = [cline(1, end)+10; cline(2, end) + 20];
 cline = [cline final_point];
 
 num_iter = 100;
@@ -78,22 +78,22 @@ last_time = 0;
 index = 1;
 i = 1;
 
-while is(3) < cline(2,end) 
+last_input = [0 0];
+
+while is(3) < cline(2,end)
     [close_point, index] = closest_point([is(1) is(3)], cline, index);
     fs = [close_point(1) 0 close_point(2) 0 0 0];
     
     x0 = linspace(is(1), fs(1), nsteps);
     y0 = linspace(is(3), fs(3), nsteps);
-    
-    df_guess = 0;
-    U0 = repmat([0 df_guess], 1, nsteps-1);
 
     z0 = zeros(nsteps*8-2+1, 1);
     z0(1:nsteps*6) = repmat(is, 1, nsteps);
     z0(1:6:nsteps*6) = x0;
-    z0(2:6:nsteps*6) = ones(1,nsteps);
     z0(3:6:nsteps*6) = y0;
-    z0(end) = 0.5;
+%     z0(nsteps*6+1:nsteps*6+(nsteps-1)*2) = repmat(last_input, 1, nsteps-1);
+    
+    z0(end) = 2;
 
     nc=@(z) nonlcon(z, nsteps, is);
     cf=@(z) costfun(z, nsteps, fs, weights);
@@ -138,11 +138,13 @@ while is(3) < cline(2,end)
     hold on
     
     is = Y0(end,:);
+    last_input = [Fx(end) delta(end)];
     i = i + 1;
 end
 
+traj_total(end,1)
 
-% save('Trajectory.mat', 'traj_total');
+save('Trajectory.mat', 'traj_total');
 % is = [287 5 -176 0 2 0];    
 % [Y1, T1] = forwardIntegrateControlInput(U_total', is);
 

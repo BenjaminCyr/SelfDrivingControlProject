@@ -31,8 +31,8 @@ function [g,h,dg,dh]=nonlcon(z, nsteps, initial_state)
     
     for i = 2:nsteps-1
         base_i = 6*i-5;
-       dx_i_1 = bike_odefun([x(i-1) u(i-1) y(i-1) v(i-1) psi(i-1) r(i-1)], [Fx(i-1) delta(i-1)]);
-       dx_i = bike_odefun([x(i) u(i) y(i) v(i) psi(i) r(i)], [Fx(i) delta(i)]);
+       dx_i_1 = bike_odefun([x(i-1) u(i-1) y(i-1) v(i-1) psi(i-1) r(i-1)], [Fx(i-1) delta(i-1)], false);
+       dx_i = bike_odefun([x(i) u(i) y(i) v(i) psi(i) r(i)], [Fx(i) delta(i)], false);
 
        x_i = [x(i) u(i) y(i) v(i) psi(i) r(i)]';
        x_i_1 = [x(i-1) u(i-1) y(i-1) v(i-1) psi(i-1) r(i-1)]';
@@ -60,7 +60,7 @@ function [g,h,dg,dh]=nonlcon(z, nsteps, initial_state)
     
      i = nsteps;
      base_i = 6*i-5;
-   dx_i_1 = bike_odefun([x(i-1) u(i-1) y(i-1) v(i-1) psi(i-1) r(i-1)], [Fx(i-1) delta(i-1)]);
+   dx_i_1 = bike_odefun([x(i-1) u(i-1) y(i-1) v(i-1) psi(i-1) r(i-1)], [Fx(i-1) delta(i-1)], false);
    x_i = [x(i) u(i) y(i) v(i) psi(i) r(i)]';
    x_i_1 = [x(i-1) u(i-1) y(i-1) v(i-1) psi(i-1) r(i-1)]';
    h(base_i:base_i+5) = x_i - x_i_1 - dt*dx_i_1;

@@ -27,29 +27,41 @@ function B = calculate_B(state, input)
     %slip angle functions in degrees
     a_f=rad2deg(delta-atan2(v+a*r,u));
     a_r=rad2deg(-atan2((v-b*r),u));
-
-    %Nonlinear Tire Dynamics
-%     phi_yf=(1-Ey)*(a_f+Shy)+(Ey/By)*atan(By*(a_f+Shy));
-%     phi_yr=(1-Ey)*(a_r+Shy)+(Ey/By)*atan(By*(a_r+Shy));
-
-    F_zf=b/(a+b)*m*g;
-%     F_yf=F_zf*Dy*sin(Cy*atan(By*phi_yf))+Svy;
-
-    F_zr=a/(a+b)*m*g;
-%     F_yr=F_zr*Dy*sin(Cy*atan(By*phi_yr))+Svy;
-    
-    %Linear Aproximation: Approximate a_f and a_r as zero
-    C_af = F_zf*By*Cy*Dy;
-    C_ar = F_zr*By*Cy*Dy;
-    
-    F_yf = C_af*a_f;
-    F_yr = C_ar*a_r;
-    
+        
     %Alpha derivatives
     da_fddelta = rad2deg(1);
     
+
+    %Nonlinear Tire Dynamics
+    phi_yf=(1-Ey)*(a_f+Shy)+(Ey/By)*atan(By*(a_f+Shy));
+    phi_yr=(1-Ey)*(a_r+Shy)+(Ey/By)*atan(By*(a_r+Shy));
+    
+    %Phi derivatives
+    dphi_yfda_f = (1-Ey) + Ey/(By^2*(a_f+Shy)^2 + 1);
+    
+
+    F_zf=b/(a+b)*m*g;
+    F_yf=F_zf*Dy*sin(Cy*atan(By*phi_yf))+Svy;
+
+    F_zr=a/(a+b)*m*g;
+    F_yr=F_zr*Dy*sin(Cy*atan(By*phi_yr))+Svy;
+    
     %F_y derivatives
-    dF_yfddelta = C_af*da_fddelta;
+    dF_yfdphi_yf = F_zf*Dy*By*Cy*cos(Cy*atan(By*phi_yf))/(By^2*phi_yf^2 + 1);
+    
+    dF_yfddelta = dF_yfdphi_yf*dphi_yfda_f*da_fddelta;
+    
+    
+    
+    %Linear Aproximation: Approximate a_f and a_r as zero
+%     C_af = F_zf*By*Cy*Dy;
+%     C_ar = F_zr*By*Cy*Dy;
+%     
+%     F_yf = C_af*a_f;
+%     F_yr = C_ar*a_r;
+
+    %F_y derivatives
+%     dF_yfddelta = C_af*da_fddelta;
      
     
     %Fx derivatives
