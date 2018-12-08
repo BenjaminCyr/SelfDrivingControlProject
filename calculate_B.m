@@ -52,6 +52,18 @@ function B = calculate_B(state, input)
     dF_yfddelta = dF_yfdphi_yf*dphi_yfda_f*da_fddelta;
     
     
+    % Skidding
+    F_total=sqrt((Nw*Fx)^2+(F_yr^2));
+    F_max=0.7*m*g;
+        
+    if F_total>F_max
+        dF_totaldFx  = Fx/F_total;
+        dFxdFx = F_max/F_total - F_max*Fx/(dF_totaldFx^2);
+    else
+        dFxdFx = 1;
+    end
+    
+    
     
     %Linear Aproximation: Approximate a_f and a_r as zero
 %     C_af = F_zf*By*Cy*Dy;
@@ -65,7 +77,7 @@ function B = calculate_B(state, input)
      
     
     %Fx derivatives
-    dudFx = Nw/m;
+    dudFx = Nw*dFxdFx/m;
     
     %delta derivatives
     duddelta = -F_yf*cos(delta)/m - dF_yfddelta*sin(delta)/m;  

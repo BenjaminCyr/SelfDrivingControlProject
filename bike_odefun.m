@@ -44,15 +44,16 @@ function dzdt=bike_odefun(x,u, linearized)
         F_yf=F_zf*Dy*sin(Cy*atan(By*phi_yf))+Svy;
         F_yr=F_zr*Dy*sin(Cy*atan(By*phi_yr))+Svy;
         
-%         F_total=sqrt((Nw*F_x)^2+(F_yr^2));
-%         F_max=0.7*m*g;
+        F_total=sqrt((Nw*F_x)^2+(F_yr^2));
+        F_max=0.7*m*g;
 
-%         if F_total>F_max
-%         
-%             F_x=F_max/F_total*F_x;
-% 
-%             F_yr=F_max/F_total*F_yr;
-%         end
+        if F_total>F_max
+        
+            F_x=F_max/F_total*F_x;
+
+            F_yr=F_max/F_total*F_yr;
+            disp('Oooooooooooooooooooooof')
+        end
     end
 
     %vehicle dynamics

@@ -53,6 +53,9 @@ function A = calculate_A(state, input)
     F_zr=a/(a+b)*m*g;
     F_yr=F_zr*Dy*sin(Cy*atan(By*phi_yr))+Svy;
     
+    F_total=sqrt((Nw*Fx)^2+(F_yr^2));
+    F_max=0.7*m*g;
+    
     %F_y derivatives
     dF_yfdphi_yf = F_zf*Dy*By*Cy*cos(Cy*atan(By*phi_yf))/(By^2*phi_yf^2 + 1);
     dF_yrdphi_yr = F_zr*Dy*By*Cy*cos(Cy*atan(By*phi_yr))/(By^2*phi_yr^2 + 1);
@@ -60,10 +63,25 @@ function A = calculate_A(state, input)
     dF_yfdu = dF_yfdphi_yf*dphi_yfda_f*da_fdu;
     dF_yfdv = dF_yfdphi_yf*dphi_yfda_f*da_fdv;
     dF_yfdr = dF_yfdphi_yf*dphi_yfda_f*da_fdr;
+
+    if F_total>F_max
+        Fx=F_max/F_total*F_x;
+
+        dF_totaldF_yr = F_y/F_total;
+        dF_yr_dF_yr = F_max/F_total - F_max*F_yr/(dF_totaldF_yr^2);
+        
+        F_yr=F_max/F_total*F_yr;
+        
+        dF_yrdu = dF_yr_dF_yr*dF_yrdphi_yr*dphi_yrda_r*da_rdu;
+        dF_yrdv = dF_yr_dF_yr*dF_yrdphi_yr*dphi_yrda_r*da_rdv;
+        dF_yrdr = dF_yr_dF_yr*dF_yrdphi_yr*dphi_yrda_r*da_rdr;
+    else
+        dF_yrdu = dF_yrdphi_yr*dphi_yrda_r*da_rdu;
+        dF_yrdv = dF_yrdphi_yr*dphi_yrda_r*da_rdv;
+        dF_yrdr = dF_yrdphi_yr*dphi_yrda_r*da_rdr;
+    end
     
-    dF_yrdu = dF_yrdphi_yr*dphi_yrda_r*da_rdu;
-    dF_yrdv = dF_yrdphi_yr*dphi_yrda_r*da_rdv;
-    dF_yrdr = dF_yrdphi_yr*dphi_yrda_r*da_rdr;
+    
     
     %Linear Aproximation: Approximate a_f and a_r as zero
 %     C_af = F_zf*By*Cy*Dy;

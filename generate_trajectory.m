@@ -27,7 +27,7 @@ ub_Fx = 2500;
 lb_Fx = -5000;
 
 % weights = [1 0.1 1 0 0 0 0 0 nsteps];
-weights = [1 .000001 1 10];
+weights = [1 .000001 1 20];
 
 % 
 % %remember the format for z is as follows:
