@@ -65,9 +65,9 @@ function A = calculate_A(state, input)
     dF_yfdr = dF_yfdphi_yf*dphi_yfda_f*da_fdr;
 
     if F_total>F_max
-        Fx=F_max/F_total*F_x;
+        Fx=F_max/F_total*Fx;
 
-        dF_totaldF_yr = F_y/F_total;
+        dF_totaldF_yr = F_yr/F_total;
         dF_yr_dF_yr = F_max/F_total - F_max*F_yr/(dF_totaldF_yr^2);
         
         F_yr=F_max/F_total*F_yr;

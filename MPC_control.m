@@ -99,7 +99,7 @@ Y(start_point,:) = Y_ref(start_point,:);
 
 last_U = [U_ref(start_point,2) U_ref(start_point,1)];
 
-
+tic;
 for i = start_point:end_point %length(tspan)-1 
    error = Y(i, :)-Y_ref(i,:);
    fprintf('Error %d:  [%f %f %f %f %f %f]\n', i, error);
@@ -114,20 +114,22 @@ for i = start_point:end_point %length(tspan)-1
    
    y_mpc = optimal_z(1:6*(window+1));
    u_mpc = optimal_z(6*(window+1)+1:6*(window+1)+2);
-   current_U = [U_ref(i,2) + u_mpc(2) U_ref(i, 1) + u_mpc(1)];
+   current_U = [U_ref(i,2)+u_mpc(2) U_ref(i, 1)+u_mpc(1)];
    u = [last_U; current_U];
    %use ode45 to simulate nonlinear system, f, forward 1 timestep
    ytemp = forwardIntegrateControlInput(u, Y(i,:));
+%    [~, ytemp] = ode45(@(t, x) bike_odefun(x, current_U), [0 dt], Y(i,:));
    Y(i+1,:) = ytemp(end,:);
-   
-   plot(Y(i:i+1, 1),Y(i:i+1, 3), 'r')
-   hold on
+%    
+%    plot(Y(i:i+1, 1),Y(i:i+1, 3), 'r')
+%    hold on
    
    U(i,:) = current_U;
    last_U = current_U;
 end
+toc;
 
-% plot(Y(1,1:i),Y(3,1:i), 'r');
+plot(Y(start_point:end_point,1),Y(start_point:end_point, 3), 'r');
 
 ROB599_ControlsProject_part1_input = U(start_point:end_point,:);
 START = Y_ref(start_point,:);

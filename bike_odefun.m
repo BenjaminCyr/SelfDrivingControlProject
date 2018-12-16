@@ -1,7 +1,4 @@
-function dzdt=bike_odefun(x,u, linearized)
-    if nargin < 3
-       linearized = true; 
-    end
+function dzdt=bike_odefun(x,u)
     %constants
     Nw=2;
     f=0.01;
@@ -30,30 +27,29 @@ function dzdt=bike_odefun(x,u, linearized)
     F_zr=a/(a+b)*m*g;
     
     %Linear Aproximation: Approximate a_f and a_r as zero
-    if linearized
-        C_af = F_zf*By*Cy*Dy;
-        C_ar = F_zr*By*Cy*Dy;
-    
-        F_yf = C_af*a_f;
-        F_yr= C_ar*a_r;
-    else
+%     if linearized
+%         C_af = F_zf*By*Cy*Dy;
+%         C_ar = F_zr*By*Cy*Dy;
+%     
+%         F_yf = C_af*a_f;
+%         F_yr= C_ar*a_r;
+%     else
         %Nonlinear Tire Dynamics
-        phi_yf=(1-Ey)*(a_f+Shy)+(Ey/By)*atan(By*(a_f+Shy));
-        phi_yr=(1-Ey)*(a_r+Shy)+(Ey/By)*atan(By*(a_r+Shy));
-        
-        F_yf=F_zf*Dy*sin(Cy*atan(By*phi_yf))+Svy;
-        F_yr=F_zr*Dy*sin(Cy*atan(By*phi_yr))+Svy;
-        
-        F_total=sqrt((Nw*F_x)^2+(F_yr^2));
-        F_max=0.7*m*g;
+    phi_yf=(1-Ey)*(a_f+Shy)+(Ey/By)*atan(By*(a_f+Shy));
+    phi_yr=(1-Ey)*(a_r+Shy)+(Ey/By)*atan(By*(a_r+Shy));
 
-        if F_total>F_max
-        
-            F_x=F_max/F_total*F_x;
+    F_yf=F_zf*Dy*sin(Cy*atan(By*phi_yf))+Svy;
+    F_yr=F_zr*Dy*sin(Cy*atan(By*phi_yr))+Svy;
 
-            F_yr=F_max/F_total*F_yr;
-            disp('Oooooooooooooooooooooof')
-        end
+    F_total=sqrt((Nw*F_x)^2+(F_yr^2));
+    F_max=0.7*m*g;
+
+    if F_total>F_max
+
+        F_x=F_max/F_total*F_x;
+
+        F_yr=F_max/F_total*F_yr;
+%         disp('Oooooooooooooooooooooof')
     end
 
     %vehicle dynamics
