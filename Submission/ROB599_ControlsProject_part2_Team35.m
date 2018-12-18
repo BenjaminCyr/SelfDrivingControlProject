@@ -1,4 +1,5 @@
 function U = ROB599_ControlsProject_part2_Team35(TestTrack, Xobs) 
+    timeout = tic;
     centroids = reshape(mean(cell2mat(Xobs), 1), 2, length(Xobs))';
     centerline = TestTrack.cline;
     leftline = TestTrack.bl;
@@ -90,9 +91,11 @@ function U = ROB599_ControlsProject_part2_Team35(TestTrack, Xobs)
 
         last_U = [U_ref(start_point,2) U_ref(start_point,1)];
 
-        tic;
         for i = start_point:end_point %length(tspan)-1 
            error = Y(i, :)-Y_ref(i,:);
+           if abs(error(1)) > 15 || toc(timeout) > 14.5*60
+              break; 
+           end
 %            fprintf('Error %d:  [%f %f %f %f %f %f]\n', i, error);
            window = min(npred, length(tspan)-i);
            if window > 1
@@ -108,7 +111,7 @@ function U = ROB599_ControlsProject_part2_Team35(TestTrack, Xobs)
            current_U = [U_ref(i,2)+u_mpc(2) U_ref(i, 1)+u_mpc(1)];
            u = interp1([0 dt], [last_U; current_U], 0:dt_final:dt);
            %use ode45 to simulate nonlinear system, f, forward 1 timestep
-           ytemp = forwardIntegrateControlInput(u, Y(i,:));
+           ytemp = forwardIntegrateControlInput2(u, Y(i,:));
         %    [~, ytemp] = ode45(@(t, x) bike_odefun(x, current_U), [0 dt], Y(i,:));
            Y(i+1,:) = ytemp(end,:);
         %    
@@ -223,7 +226,9 @@ function U = ROB599_ControlsProject_part2_Team35(TestTrack, Xobs)
 %             fprintf('%d:\t', i_iter);
             [z,fval,~,output] = fmincon(cf,z0,[],[],[],[],lb',ub',nc,options);
 %             fprintf('fval = %e\tFeasibility = %e\n', fval, output.constrviolation);
-
+            if output.constrviolation > 1e-1 || toc(timeout) > 10*60
+               break; 
+            end
 
             Y0=reshape(z(1:6*nsteps),6,nsteps)';
             U0=reshape(z(6*nsteps+1:8*nsteps-2),2,nsteps-1);
